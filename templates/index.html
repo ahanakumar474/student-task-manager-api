@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Task & Deadline Manager</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body {
+            background: #f0f4f8;
+            color: #1e293b;
+            max-width: 750px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        h1 { text-align: center; color: #0f172a; margin-bottom: 5px; }
+        p.subtitle { text-align: center; color: #64748b; margin-top: 0; margin-bottom: 25px; }
+
+        .card {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            margin-bottom: 25px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 10px;
+        }
+        @media (max-width: 650px) { .form-grid { grid-template-columns: 1fr; } }
+
+        input, select, button {
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        button.add-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            grid-column: span 4;
+            margin-top: 5px;
+        }
+        @media (max-width: 650px) { button.add-btn { grid-column: span 1; } }
+        button.add-btn:hover { background: #1d4ed8; }
+
+        .task-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            padding: 15px 18px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+            border-left: 5px solid #2563eb;
+        }
+        .task-item.completed {
+            opacity: 0.65;
+            border-left-color: #10b981;
+        }
+        .task-item.completed .task-title { text-decoration: line-through; }
+
+        .task-title { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
+        .task-meta { font-size: 13px; color: #64748b; }
+
+        .badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: 6px;
+        }
+        .High { background: #fee2e2; color: #b91c1c; }
+        .Medium { background: #fef3c7; color: #b45309; }
+        .Low { background: #dcfce7; color: #15803d; }
+
+        .actions button {
+            margin-left: 6px;
+            cursor: pointer;
+            border: none;
+            font-weight: 600;
+            padding: 7px 12px;
+        }
+        .done-btn { background: #10b981; color: white; }
+        .done-btn:hover { background: #059669; }
+        .del-btn { background: #ef4444; color: white; }
+        .del-btn:hover { background: #dc2626; }
+        .empty-msg { text-align: center; color: #94a3b8; padding: 20px; }
+    </style>
+</head>
+<body>
+
+    <h1>Student Task & Deadline Manager</h1>
+    <p class="subtitle">Python + Flask REST API Mini Project</p>
+
+    <div class="card">
+        <form id="taskForm" class="form-grid">
+            <input type="text" id="title" placeholder="Task title (e.g., Finish Lab Report)" required>
+            <input type="text" id="subject" placeholder="Subject (e.g., CSDS)">
+            <select id="priority">
+                <option value="High">High Priority</option>
+                <option value="Medium" selected>Medium Priority</option>
+                <option value="Low">Low Priority</option>
+            </select>
+            <input type="date" id="due_date">
+            <button type="submit" class="add-btn">+ Add Task</button>
+        </form>
+    </div>
+
+    <div id="taskList"></div>
+
+    <script>
+        const API_URL = "/tasks";
+
+        // 1. GET all tasks from Flask API
+        async function fetchTasks() {
+            const response = await fetch(API_URL);
+            const tasks = await response.json();
+            const listDiv = document.getElementById("taskList");
+            listDiv.innerHTML = "";
+
+            if (tasks.length === 0) {
+                listDiv.innerHTML = '<div class="empty-msg">No tasks yet. Add one above!</div>';
+                return;
+            }
+
+            tasks.forEach(task => {
+                const div = document.createElement("div");
+                div.className = `task-item ${task.completed ? "completed" : ""}`;
+                div.innerHTML = `
+                    <div>
+                        <div class="task-title">${task.title}</div>
+                        <div class="task-meta">
+                            <span class="badge ${task.priority}">${task.priority}</span>
+                            <strong>${task.subject}</strong>
+                            ${task.due_date ? ` • Due: ${task.due_date}` : ""}
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button class="done-btn" onclick="toggleTask('${task.id}')">
+                            ${task.completed ? "Undo" : "Done"}
+                        </button>
+                        <button class="del-btn" onclick="deleteTask('${task.id}')">Delete</button>
+                    </div>
+                `;
+                listDiv.appendChild(div);
+            });
+        }
+
+        // 2. POST a new task to Flask API
+        document.getElementById("taskForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const payload = {
+                title: document.getElementById("title").value,
+                subject: document.getElementById("subject").value || "General",
+                priority: document.getElementById("priority").value,
+                due_date: document.getElementById("due_date").value
+            };
+
+            const response = await fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                document.getElementById("taskForm").reset();
+                fetchTasks();
+            } else {
+                const err = await response.json();
+                alert(err.error || "Failed to add task");
+            }
+        });
+
+        // 3. PUT to toggle completed status
+        async function toggleTask(id) {
+            await fetch(`${API_URL}/${id}`, { method: "PUT" });
+            fetchTasks();
+        }
+
+        // 4. DELETE a task
+        async function deleteTask(id) {
+            await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+            fetchTasks();
+        }
+
+        // Load tasks on page open
+        fetchTasks();
+    </script>
+</body>
+</html>

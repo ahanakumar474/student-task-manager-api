@@ -1,0 +1,26 @@
+[
+    {
+        "id": "f607a590",
+        "title": "Complete Python Mini Project",
+        "subject": "CSDS Lab",
+        "priority": "High",
+        "due_date": "2026-11-20",
+        "completed": false
+    },
+    {
+        "id": "b72d80b6",
+        "title": "ahana",
+        "subject": "physics",
+        "priority": "High",
+        "due_date": "0093-02-09",
+        "completed": false
+    },
+    {
+        "id": "794e3a16",
+        "title": "berozgar",
+        "subject": "physics",
+        "priority": "High",
+        "due_date": "2027-04-04",
+        "completed": false
+    }
+]
